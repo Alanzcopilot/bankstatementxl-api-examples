@@ -1,0 +1,6 @@
+.venv/
+node_modules/
+*.xlsx
+*.csv
+!postman/*
+__pycache__/

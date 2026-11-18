@@ -1,0 +1,557 @@
+{
+  "info": {
+    "_postman_id": "55b25244-57ec-5dbf-8319-7bca1a749f67",
+    "name": "BankStatementXL API",
+    "description": "Convert bank and card statements to Excel, CSV, QuickBooks, Xero, Tally, OFX and more, with every row checked.\n\n1. Set the apiKey variable to your API key. Keep it in a local or vault value, and never share or export the collection with the key in it.\n2. Upload a statement (Statements, then Upload). Its id is saved as statementId for the other requests.\n3. Read the statement until its status is \"ready\", then download it.\n\nThe first download uses the statement's pages and, by default, deletes its results afterwards: ask for every format you need in that one download (format=xlsx,json). Every error has the same shape: {\"error\": {\"code\": \"...\", \"message\": \"...\"}}.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Statements",
+      "description": "Upload a statement, follow it until it is ready, download the converted files, delete it.",
+      "item": [
+        {
+          "name": "Upload a statement to convert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "description": "Send the same key to retry safely: a repeat returns the first statement",
+                "disabled": true
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "The statement file, or its page photos in order"
+                },
+                {
+                  "key": "password",
+                  "value": "",
+                  "type": "text",
+                  "description": "The PDF's password, if it has one. Used for this conversion only and never stored.",
+                  "disabled": true
+                },
+                {
+                  "key": "pages",
+                  "value": "",
+                  "type": "text",
+                  "description": "Convert only these pages, e.g. 1-3,5",
+                  "disabled": true
+                },
+                {
+                  "key": "date_order",
+                  "value": "",
+                  "type": "text",
+                  "description": "CSV and Excel files: day-first or month-first dates, when the file could be either One of: DMY, MDY.",
+                  "disabled": true
+                },
+                {
+                  "key": "delete_after_download",
+                  "value": "true",
+                  "type": "text",
+                  "description": "Delete the results right after the first download (default). false keeps them until they expire.",
+                  "disabled": true
+                },
+                {
+                  "key": "filename",
+                  "value": "",
+                  "type": "text",
+                  "description": "The file's name with its extension, e.g. march.pdf, for a single file sent without a usable name (some automation tools send none). Used only to tell the file type; never stored.",
+                  "disabled": true
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/statements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statements"
+              ]
+            },
+            "description": "Upload a statement to convert\n\nOne PDF, TIFF, CSV, Excel or OFX file, or a statement's page photos (JPG, PNG, HEIC) in order. Returns at once with status \"queued\"; poll the statement until it is \"ready\". Nothing is charged until the first download.\n\nChoose the file in the body's \"file\" field. For phone photos, add one \"file\" field per page, in order. Turn on the Idempotency-Key header to retry an upload safely: a repeat with the same key returns the first statement. A test script saves the new id as statementId."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201 || pm.response.code === 202) {",
+                  "    pm.collectionVariables.set(\"statementId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Your recent statements, newest first",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/statements",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statements"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "How many to list, 1 to 100 (default 20).",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "ready",
+                  "description": "Only statements with this status. One of: queued, processing, ready, failed.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Your recent statements, newest first"
+          },
+          "response": []
+        },
+        {
+          "name": "A statement: its status, and once ready, its pages and checks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/statements/:statement_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statements",
+                ":statement_id"
+              ],
+              "variable": [
+                {
+                  "key": "statement_id",
+                  "value": "{{statementId}}",
+                  "description": "Saved by an earlier request, or paste an id."
+                }
+              ]
+            },
+            "description": "A statement: its status, and once ready, its pages and checks\n\nWhile the status is \"queued\" or \"processing\", the Retry-After header says how many seconds to wait."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete a statement's files and results now",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/statements/:statement_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statements",
+                ":statement_id"
+              ],
+              "variable": [
+                {
+                  "key": "statement_id",
+                  "value": "{{statementId}}",
+                  "description": "Saved by an earlier request, or paste an id."
+                }
+              ]
+            },
+            "description": "Delete a statement's files and results now"
+          },
+          "response": []
+        },
+        {
+          "name": "Download the converted statement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/statements/:statement_id/download?format=xlsx,json",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "statements",
+                ":statement_id",
+                "download"
+              ],
+              "query": [
+                {
+                  "key": "format",
+                  "value": "xlsx,json",
+                  "description": "Several, comma-separated, come back as one ZIP. Formats: json, xlsx, csv, qbo-csv, xero, ofx, qbo-ofx, qbo, qfx, qif, iif, tally, sage, myob, netsuite, wave, zoho, freshbooks."
+                },
+                {
+                  "key": "date_format",
+                  "value": "MM/DD/YYYY",
+                  "description": "How dates are written in the files. One of: MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD.",
+                  "disabled": true
+                },
+                {
+                  "key": "account_type",
+                  "value": "CHECKING",
+                  "description": "The account's type, for the files that name one (OFX, QBO, QFX, QIF, IIF, Tally). One of: CHECKING, SAVINGS, CREDITCARD, CREDITLINE, MONEYMRKT.",
+                  "disabled": true
+                },
+                {
+                  "key": "currency",
+                  "value": "USD",
+                  "description": "Three letters, such as USD: for OFX, QBO and QFX files when the statement prints no currency. QBO and QFX otherwise take the chosen bank's country's (CAD for a Canadian bank).",
+                  "disabled": true
+                },
+                {
+                  "key": "intu_bid",
+                  "value": "",
+                  "description": "QBO / QFX only: the bank's Intuit bank ID",
+                  "disabled": true
+                },
+                {
+                  "key": "iif_account",
+                  "value": "",
+                  "description": "IIF only: the QuickBooks account for the rows (default \"Bank\", or \"Credit Card\" for a card).",
+                  "disabled": true
+                },
+                {
+                  "key": "iif_offset",
+                  "value": "",
+                  "description": "IIF only: the account for the other side of each row (default \"Ask My Accountant\").",
+                  "disabled": true
+                },
+                {
+                  "key": "tally_bank",
+                  "value": "",
+                  "description": "Tally only: the bank ledger (default \"Bank Account\", or \"Credit Card\" for a card).",
+                  "disabled": true
+                },
+                {
+                  "key": "tally_offset",
+                  "value": "",
+                  "description": "Tally only: the ledger for the other side of each row (default \"Suspense\").",
+                  "disabled": true
+                },
+                {
+                  "key": "tally_cash",
+                  "value": "",
+                  "description": "Tally only: the ledger for cash withdrawals and deposits (default \"Cash\"; \"none\" keeps them as payments and receipts).",
+                  "disabled": true
+                },
+                {
+                  "key": "tally_opening",
+                  "value": "true",
+                  "description": "Tally only: true also sets the bank ledger's opening balance to the statement's.",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "statement_id",
+                  "value": "{{statementId}}",
+                  "description": "Saved by an earlier request, or paste an id."
+                }
+              ]
+            },
+            "description": "Download the converted statement\n\nOne format returns its file; several (format=xlsx&format=csv, or format=xlsx,csv) return one ZIP. A statement with several accounts gives one file per account. The first download uses the statement's pages; later ones are free. Response headers: BSXL-Pages-Used, BSXL-Scans-Used, BSXL-Warnings (a JSON list).\n\nQBO and QFX: ask without intu_bid first and the answer (400 intu_bid_required) lists the statement's possible banks in banks; let your user choose theirs and ask again with its id as intu_bid. The first time for a bank, the answer is 409 bank_id_confirmation_required: record your user's confirmation (POST /v1/bank-id-confirmations), then download.\n\nExport templates (the Business plan): format=tpl_<id> gives your workspace's own column layout, saved in Settings → Export templates on the website (GET /v1/export-templates lists them). It is one more format of the same download: the same rows and the same pages.\n\nThe first download uses the statement's pages and, by default, deletes its results afterwards: ask for every format you need at once (format=xlsx,json gives one ZIP). Use Send and Download to save the file. For format=qbo or qfx, send it first without intu_bid: the answer lists the statement's banks in banks."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "description": "Your workspace, the pages and scans you have left, your limits and the formats.",
+      "item": [
+        {
+          "name": "Your workspace, page balance and limits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/account",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "account"
+              ]
+            },
+            "description": "Your workspace, page balance and limits\n\nbalance.pages and balance.scans are what you can use now: your balance minus what your statements of the last day hold (converted and not yet downloaded, or still converting), the same figure an upload is checked against. held_pages and held_scans are what those statements hold; a download uses it, a deletion releases it."
+          },
+          "response": []
+        },
+        {
+          "name": "Your workspace's export templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/export-templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "export-templates"
+              ]
+            },
+            "description": "Your workspace's export templates\n\nThe column layouts your workspace saved in Settings → Export templates on the website (the Business plan). Download a statement in one with format=tpl_<id>: one more format of the same download, so it uses no extra pages."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "description": "Addresses on your server that are told when each statement is ready or has failed.",
+      "item": [
+        {
+          "name": "Your webhook addresses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/webhook-endpoints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook-endpoints"
+              ]
+            },
+            "description": "Your webhook addresses\n\nWe POST a signed JSON event to each address when a statement you uploaded is ready (statement.ready) or has failed (statement.failed). Headers: BSXL-Event-Id (the same in every retry), BSXL-Event-Type, and BSXL-Signature: t=<Unix seconds>,v1=<hex HMAC-SHA256 of \"<t>.<raw body>\" keyed with the address's signing secret>. Answer with any 2xx. Otherwise we try again after 1 minute, 5 minutes, 30 minutes, 2 hours and 6 hours. The event's data is the statement as GET /v1/statements/{id} shows it. Up to 20 addresses, https only."
+          },
+          "response": []
+        },
+        {
+          "name": "Add an address for events",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://your-server.example.com/bsxl-events\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhook-endpoints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook-endpoints"
+              ]
+            },
+            "description": "Add an address for events\n\nWe POST a signed JSON event to each address when a statement you uploaded is ready (statement.ready) or has failed (statement.failed). Headers: BSXL-Event-Id (the same in every retry), BSXL-Event-Type, and BSXL-Signature: t=<Unix seconds>,v1=<hex HMAC-SHA256 of \"<t>.<raw body>\" keyed with the address's signing secret>. Answer with any 2xx. Otherwise we try again after 1 minute, 5 minutes, 30 minutes, 2 hours and 6 hours. The event's data is the statement as GET /v1/statements/{id} shows it. Up to 20 addresses, https only. The signing secret is in this answer only: keep it.\n\nA test script saves the new id as endpointId."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201 || pm.response.code === 202) {",
+                  "    pm.collectionVariables.set(\"endpointId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove an address (its waiting events stop too)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/webhook-endpoints/:endpoint_id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook-endpoints",
+                ":endpoint_id"
+              ],
+              "variable": [
+                {
+                  "key": "endpoint_id",
+                  "value": "{{endpointId}}",
+                  "description": "Saved by an earlier request, or paste an id."
+                }
+              ]
+            },
+            "description": "Remove an address (its waiting events stop too)"
+          },
+          "response": []
+        },
+        {
+          "name": "Send a ping event to an address now",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/webhook-endpoints/:endpoint_id/test",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook-endpoints",
+                ":endpoint_id",
+                "test"
+              ],
+              "variable": [
+                {
+                  "key": "endpoint_id",
+                  "value": "{{endpointId}}",
+                  "description": "Saved by an earlier request, or paste an id."
+                }
+              ]
+            },
+            "description": "Send a ping event to an address now\n\nA signed event of type \"ping\", sent once and not retried. delivered is true when the address answered with a 2xx; status is its HTTP status (0: no answer)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "QuickBooks Desktop bank IDs",
+      "description": "QBO and QFX files (QuickBooks Desktop, Quicken) need your user's confirmation for their bank first, once per bank.",
+      "item": [
+        {
+          "name": "Banks your workspace has confirmed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/bank-id-confirmations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-id-confirmations"
+              ]
+            },
+            "description": "Banks your workspace has confirmed"
+          },
+          "response": []
+        },
+        {
+          "name": "Record the user's confirmation for a bank, before its QBO or QFX files",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intu_bid\": \"12345\",\n  \"confirm\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/bank-id-confirmations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "bank-id-confirmations"
+              ]
+            },
+            "description": "Record the user's confirmation for a bank, before its QBO or QFX files\n\nShow your user this notice and get their confirmation first.\n\nNotice: When you choose a QBO or QFX file, you confirm that (a) the statement is for an account you own or are authorized to manage, and (b) your bank has its own Intuit bank ID. You are responsible for checking the file before you import it and for how you use it. Back up your QuickBooks company file before importing, because the import writes straight into it. We keep a record of your confirmation.\n\nConfirmation: \"I confirm my bank has its own Intuit bank ID, and this statement is for an account I own or am authorized to manage.\"\n\nAsked once per bank.\n\nRecord it only after your user has read the notice and confirmed. Then download with format=qbo (or qfx) and the same intu_bid."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Is the API up? No key needed.",
+      "item": [
+        {
+          "name": "Is the API up? (no key needed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Is the API up? (no key needed)",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://api.bankstatementxl.com/v1",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "statementId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "endpointId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

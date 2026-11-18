@@ -1,0 +1,1604 @@
+{
+  "name": "BankStatementXL: OneDrive folder to Excel",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "event": "fileCreated",
+        "watchFolder": true,
+        "folderId": {
+          "__rl": true,
+          "value": "",
+          "mode": "id"
+        }
+      },
+      "id": "aad6b160-ee71-5473-a4ee-6f934b5f6844",
+      "name": "New statement in the folder",
+      "type": "n8n-nodes-base.microsoftOneDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "credentials": {
+        "microsoftOneDriveOAuth2Api": {
+          "id": "choose-after-import",
+          "name": "Microsoft OneDrive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e342498-dce2-5faf-a5d1-299e3c412df2",
+              "name": "formats",
+              "value": "xlsx,qbo-csv",
+              "type": "string"
+            },
+            {
+              "id": "6c11b427-5812-58f8-97ba-1ad7b31b73cb",
+              "name": "converted_folder_id",
+              "value": "PASTE-THE-CONVERTED-FOLDER-ID",
+              "type": "string"
+            },
+            {
+              "id": "941a07bd-9b16-5cfc-99e5-0a3415c76b43",
+              "name": "excel_workbook_id",
+              "value": "PASTE-THE-EXCEL-WORKBOOK-ID",
+              "type": "string"
+            },
+            {
+              "id": "ce52dd59-3a64-5600-8151-057797718a47",
+              "name": "excel_sheet",
+              "value": "Sheet1",
+              "type": "string"
+            },
+            {
+              "id": "63da22af-d843-5950-a5e4-28751f3cbff8",
+              "name": "excel_table",
+              "value": "Table1",
+              "type": "string"
+            },
+            {
+              "id": "92a55c88-f769-5bb0-9d91-f5055363571c",
+              "name": "alert_email",
+              "value": "you@example.com",
+              "type": "string"
+            },
+            {
+              "id": "e46566d3-1331-517a-aa42-c138b73165c0",
+              "name": "api_base",
+              "value": "https://api.bankstatementxl.com/v1",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "b7c4dc1e-5f85-53b2-b8c0-45469334441e",
+      "name": "Settings – edit me",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "e733d6af-e984-5346-b00a-0586cee600cb",
+              "leftValue": "={{ /\\.(pdf|jpe?g|png|heic|tiff?)$/i.test($json.name || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "12830a67-34d6-5582-b77f-f2adaa52e1b3",
+      "name": "Only statements",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "fileId": "={{ $json.id }}"
+      },
+      "id": "b594bcfd-407c-527f-95a8-dea75721e635",
+      "name": "Download the statement",
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        300
+      ],
+      "credentials": {
+        "microsoftOneDriveOAuth2Api": {
+          "id": "choose-after-import",
+          "name": "Microsoft OneDrive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "624dc254-0df9-58e3-94cf-ab28349f9ff5",
+              "name": "fileName",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "82d40948-02f8-516f-a566-1a0dae36e8e0",
+      "name": "Statement file",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "1584eb91-9380-5e08-9c9b-d465d22c13e4",
+      "name": "Loop over statements",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0c93bb65-f543-577c-9f14-e49e1dafde3b",
+              "name": "fileName",
+              "value": "={{ $json.fileName || ($binary.data || {}).fileName || 'statement.pdf' }}",
+              "type": "string"
+            },
+            {
+              "id": "4e89196d-441b-5862-8a7a-90ab1875ec04",
+              "name": "baseName",
+              "value": "={{ String($json.fileName || ($binary.data || {}).fileName || 'statement').replace(/\\.[A-Za-z0-9]{1,5}$/, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "8e413e30-c7ed-5824-8150-71cbd5b2ab51",
+              "name": "startedAt",
+              "value": "={{ $now.toMillis() }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "98404bec-96c0-5a7b-9df7-c115eec04677",
+      "name": "This statement",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "bd2f0f5e-fd31-5d9d-8c1f-b9a0187c96ff",
+              "leftValue": "={{ (() => { const known = [\"xlsx\", \"csv\", \"qbo-csv\", \"xero\", \"iif\", \"ofx\", \"qbo-ofx\", \"qif\", \"tally\", \"sage\", \"myob\", \"netsuite\", \"wave\", \"zoho\", \"freshbooks\", \"json\"]; const asked = String($('Settings – edit me').first().json.formats || '').split(',').map(f => f.trim().toLowerCase()).filter((f, i, all) => f && all.indexOf(f) === i); return asked.length > 0 && asked.every(f => known.includes(f)); })() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "efda3d6b-1023-5211-a679-250f7c8f9b03",
+      "name": "Formats OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "errorType": "errorMessage",
+        "errorMessage": "={{ (() => { const known = [\"xlsx\", \"csv\", \"qbo-csv\", \"xero\", \"iif\", \"ofx\", \"qbo-ofx\", \"qif\", \"tally\", \"sage\", \"myob\", \"netsuite\", \"wave\", \"zoho\", \"freshbooks\", \"json\"]; const asked = String($('Settings – edit me').first().json.formats || '').split(',').map(f => f.trim().toLowerCase()).filter((f, i, all) => f && all.indexOf(f) === i); const bad = asked.filter(f => !known.includes(f)); if (!asked.length) return \"Add at least one format to 'formats' in Settings – edit me, for example xlsx,qbo-csv.\"; if (bad.includes('qbo') || bad.includes('qfx')) return \"QBO and QFX files need your bank's Intuit bank ID, so this workflow doesn't make them. Use qbo-csv (QuickBooks Online), iif (QuickBooks Desktop) or ofx instead.\"; return \"'\" + bad.join(\"', '\") + \"' in Settings – edit me isn't a format we make. Use any of: \" + known.join(', ') + \".\"; })() }}"
+      },
+      "id": "5cfc7114-c157-5819-a5bc-35a8fde089da",
+      "name": "Stop: check the formats",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings – edit me').first().json.api_base }}/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ 'n8n-' + $execution.id + '-' + $('This statement').first().json.startedAt }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "delete_after_download",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "a5b34136-06a9-5d1b-9424-8518b8a83cd2",
+      "name": "Upload statement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1980,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "choose-your-bankstatementxl-key",
+          "name": "BankStatementXL API key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5c4ee315-43bb-5cbc-965a-65c3ce5d55c8",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5496fa29-7000-5c64-b735-94c2a827bf2a",
+      "name": "Uploaded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      },
+      "id": "8e10eca8-ab0e-5167-bda6-009f80c68202",
+      "name": "Wait 3 seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings – edit me').first().json.api_base }}/statements/{{ $json.body.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "c1d30baa-c3c2-5353-b8f1-cfa5d7cfbebf",
+      "name": "Get status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2640,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "choose-your-bankstatementxl-key",
+          "name": "BankStatementXL API key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2744bd22-93ad-5637-af1a-54a4286d209b",
+                    "leftValue": "={{ $json.statusCode }}",
+                    "rightValue": 400,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Refused"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "171233fc-f3f9-56e8-9d2f-5b03617f62d8",
+                    "leftValue": "={{ $json.body.status }}",
+                    "rightValue": "failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Not converted"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d737c555-f792-598d-967d-405b04b11b25",
+                    "leftValue": "={{ $json.body.status }}",
+                    "rightValue": "ready",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Ready"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "228bc536-0852-5e2f-8b03-f9c040e56ead",
+                    "leftValue": "={{ $now.toMillis() - $('This statement').first().json.startedAt > 300000 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Taking too long"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Still converting"
+        }
+      },
+      "id": "40709f1d-340c-55f7-ba8f-b1afae700321",
+      "name": "Check status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "errorType": "errorObject",
+        "errorObject": "={{ JSON.stringify({ message: ($json.body && $json.body.error && $json.body.error.message) || ('BankStatementXL answered HTTP ' + $json.statusCode + '.'), description: 'File: ' + $('This statement').first().json.fileName + '. Nothing was charged.' }) }}"
+      },
+      "id": "7dfaf3b7-ca0b-5341-9d48-93b4f0f308b9",
+      "name": "Stop: BankStatementXL said no",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "errorType": "errorObject",
+        "errorObject": "={{ JSON.stringify({ message: ($json.body.failure && $json.body.failure.message) || \"This statement couldn't be converted.\", description: 'File: ' + $('This statement').first().json.fileName + '. Nothing was charged.' }) }}"
+      },
+      "id": "1bb190f8-5e26-5f29-86a6-8bad2c2af9c2",
+      "name": "Stop: not converted",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3080,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1048689c-0d7e-52ed-a409-f0cc8cb520c3",
+              "name": "id",
+              "value": "={{ $json.body.id }}",
+              "type": "string"
+            },
+            {
+              "id": "ae7ee61f-7c49-56e2-b696-7f44d04c110f",
+              "name": "pages",
+              "value": "={{ $json.body.pages }}",
+              "type": "object"
+            },
+            {
+              "id": "4d6133d5-b11f-5ff3-adfa-8bc54ca4a19f",
+              "name": "checks",
+              "value": "={{ $json.body.checks }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "438cabf8-6b2b-5235-8e39-e9353c076c32",
+      "name": "Statement ready",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings – edit me').first().json.api_base }}/statements/{{ $json.id }}/download",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "06051fa3-c0c5-5fdc-86c0-5af3da4b139e",
+      "name": "Download rows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3300,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "choose-your-bankstatementxl-key",
+          "name": "BankStatementXL API key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "755f8f99-aba0-5df6-9a1b-8fe8b36cf808",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7b68cd28-4b07-58af-81f4-eb178ca5ea27",
+      "name": "Rows downloaded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e6e13656-5821-56ba-934e-11dcc01974af",
+              "name": "id",
+              "value": "={{ $('Statement ready').first().json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "7c6a69e0-1184-52fc-97b8-bdd67d385b18",
+              "name": "formats",
+              "value": "={{ String($('Settings – edit me').first().json.formats || '').split(',').map(f => f.trim().toLowerCase()).filter((f, i, all) => f && all.indexOf(f) === i) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "af7d79b5-2707-5dec-a34c-c5bc541dab87",
+      "name": "Formats to make",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "formats",
+        "include": "allOtherFields",
+        "options": {
+          "destinationFieldName": "format"
+        }
+      },
+      "id": "863076f9-09c4-5951-a622-c805c7897d55",
+      "name": "One item per format",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        3960,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings – edit me').first().json.api_base }}/statements/{{ $json.id }}/download",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "format",
+              "value": "={{ $json.format }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "dfcd6294-a734-5222-a9fc-04d70a670f19",
+      "name": "Download file",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4180,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "choose-your-bankstatementxl-key",
+          "name": "BankStatementXL API key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b52e5c6c-43cf-561c-9c6f-8d30a3c544e9",
+              "leftValue": "={{ $json.statusCode }}",
+              "rightValue": 300,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8e093024-d8e1-5b87-bb16-e5b5bace96bf",
+      "name": "File downloaded?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "fromJson",
+        "destinationKey": "body",
+        "options": {}
+      },
+      "id": "936fce39-8a1c-5228-9225-cca0500d61c1",
+      "name": "Read the error",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        4620,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0782a593-7d93-5297-ac9c-e26a00e3b3f1",
+              "name": "fileName",
+              "value": "={{ (() => { const base = $('This statement').first().json.baseName; const id = $('Statement ready').first().json.id; const format = $('One item per format').item.json.format; const header = String(($json.headers || {})['content-disposition'] || ''); const found = header.match(/filename\\*?=(?:UTF-8'')?\"?([^\";]+)\"?/i); const apiName = found ? decodeURIComponent(found[1]) : ''; if (apiName) return apiName.startsWith(id) ? base + apiName.slice(id.length) : apiName; return base + ({\"xlsx\": \".xlsx\", \"csv\": \".csv\", \"qbo-csv\": \".qbo.csv\", \"xero\": \".xero.csv\", \"iif\": \".iif\", \"ofx\": \".ofx\", \"qbo-ofx\": \".qbo.ofx\", \"qif\": \".qif\", \"tally\": \".tally.zip\", \"sage\": \".sage.csv\", \"myob\": \".myob.qif\", \"netsuite\": \".netsuite.csv\", \"wave\": \".wave.csv\", \"zoho\": \".zoho.csv\", \"freshbooks\": \".freshbooks.csv\", \"json\": \".statement.json\"}[format] || '.' + format); })() }}",
+              "type": "string"
+            },
+            {
+              "id": "af378164-671e-5d6e-8c81-fd0937320a95",
+              "name": "format",
+              "value": "={{ $('One item per format').item.json.format }}",
+              "type": "string"
+            },
+            {
+              "id": "f9a881c8-ae38-5079-b438-a86e48f5759f",
+              "name": "statementFile",
+              "value": "={{ $('This statement').first().json.fileName }}",
+              "type": "string"
+            },
+            {
+              "id": "db66403e-b118-5bf9-8617-31190eff58bb",
+              "name": "data",
+              "value": "data",
+              "type": "binary"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "88d47675-6763-563f-bbd2-044dc5733b82",
+      "name": "Name the file",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $('Settings – edit me').first().json.api_base }}/statements/{{ $('Statement ready').first().json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "e485b3b6-ff9e-52ba-83eb-b7da69cad1be",
+      "name": "Remove the statement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4840,
+        460
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "choose-your-bankstatementxl-key",
+          "name": "BankStatementXL API key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": "1"
+      },
+      "id": "b62e4c01-1201-593e-baa8-a0fb6ba902fe",
+      "name": "Files ready",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        5060,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0828710d-4c89-5ab1-b9d6-855b192faf4b",
+              "name": "id",
+              "value": "={{ ($json.body && $json.body.id) || $('Statement ready').first().json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "9ef76594-5c01-5bcc-82a6-dd277d57d064",
+              "name": "message",
+              "value": "={{ ($json.body && $json.body.error && $json.body.error.message) || ($json.body && $json.body.status ? \"BankStatementXL needed more than 5 minutes for this statement, so the workflow stopped. Nothing was charged. Try it again later.\" : \"BankStatementXL couldn't finish this statement.\") }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "652610d3-16d9-5dc4-a8a4-7f4bd0fd6fa3",
+      "name": "Why it stopped",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4840,
+        800
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $('Settings – edit me').first().json.api_base }}/statements/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "9b54d4d8-5684-5940-8bae-4b5da96273a0",
+      "name": "Remove after a problem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        5060,
+        800
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "choose-your-bankstatementxl-key",
+          "name": "BankStatementXL API key"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "errorType": "errorObject",
+        "errorObject": "={{ JSON.stringify({ message: $('Why it stopped').first().json.message, description: 'File: ' + $('This statement').first().json.fileName + '. It was removed from BankStatementXL, so nothing of it is kept there.' }) }}"
+      },
+      "id": "06766259-ca7c-52ce-a6c0-4b612bf9b396",
+      "name": "Stop: not finished",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        5280,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ea9b30ac-121e-5e7a-839c-9c15f7445f0d",
+              "name": "statementFile",
+              "value": "={{ $('This statement').first().json.fileName }}",
+              "type": "string"
+            },
+            {
+              "id": "75bd69db-a769-5b8c-a406-6e0f1e4b981f",
+              "name": "statementId",
+              "value": "={{ $('Statement ready').first().json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "3f3f3afe-6ec0-5626-a0cf-8cf4a7805f4f",
+              "name": "rows",
+              "value": "={{ $('Download rows').first().json.body.transactions.length }}",
+              "type": "number"
+            },
+            {
+              "id": "328cc787-2848-5856-9bee-a6b6e9cf8f52",
+              "name": "rowsNotAddingUp",
+              "value": "={{ ($('Statement ready').first().json.checks || {}).rows_not_adding_up || 0 }}",
+              "type": "number"
+            },
+            {
+              "id": "a25f165d-84b5-5b45-83ea-aa913f3417ee",
+              "name": "totalsMatch",
+              "value": "={{ (() => { const t = ($('Statement ready').first().json.checks || {}).totals_match; return t === true ? 'Yes' : t === false ? 'No, please check this statement' : 'The statement prints no totals'; })() }}",
+              "type": "string"
+            },
+            {
+              "id": "a733abe5-ab6e-5697-91b5-a3be1841e7e2",
+              "name": "pagesUsed",
+              "value": "={{ Number(($('Download rows').first().json.headers || {})['bsxl-pages-used'] || 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "9441ef64-099d-5a66-8df7-130f3e3f97d7",
+              "name": "files",
+              "value": "={{ $('Files ready').all().map(f => f.json.fileName).join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "aeb0a4e1-8507-507b-b7a0-fef57cfc6c07",
+              "name": "periodStart",
+              "value": "={{ ($('Download rows').first().json.body.statement || {}).period_start || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "57cadfd1-0e3d-5868-889f-fd97ef5c57d9",
+              "name": "periodEnd",
+              "value": "={{ ($('Download rows').first().json.body.statement || {}).period_end || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b523999f-745c-5abe-845f-b27e183b81fa",
+              "name": "transactions",
+              "value": "={{ $('Download rows').first().json.body.transactions.map(t => ({ 'Statement': $('This statement').first().json.fileName, 'Date': t.date, 'Description': t.description, 'Amount': t.amount === null ? null : Number(t.amount), 'Balance': t.balance === null ? null : Number(t.balance), 'Category': t.category || '', 'Note': (t.flags || []).map(f => f.message || f.code).join('; ') })) }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "01f500a1-b238-5124-9c68-f05c726e52b2",
+      "name": "Summary",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        5500,
+        300
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "fileName": "={{ $json.fileName }}",
+        "parentId": "={{ $('Settings – edit me').first().json.converted_folder_id }}",
+        "binaryData": true
+      },
+      "id": "8cbae613-3dcb-5481-affb-a2b37de079d1",
+      "name": "Save to OneDrive",
+      "type": "n8n-nodes-base.microsoftOneDrive",
+      "typeVersion": 1.1,
+      "position": [
+        5280,
+        300
+      ],
+      "credentials": {
+        "microsoftOneDriveOAuth2Api": {
+          "id": "choose-after-import",
+          "name": "Microsoft OneDrive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "transactions",
+        "include": "noOtherFields",
+        "options": {}
+      },
+      "id": "08415ce8-e9b4-583f-a06f-90f7a2f7e890",
+      "name": "One row per transaction",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        5720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "append",
+        "workbook": {
+          "__rl": true,
+          "value": "={{ $('Settings – edit me').first().json.excel_workbook_id }}",
+          "mode": "id"
+        },
+        "worksheet": {
+          "__rl": true,
+          "value": "={{ $('Settings – edit me').first().json.excel_sheet }}",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "={{ $('Settings – edit me').first().json.excel_table }}",
+          "mode": "id"
+        },
+        "dataMode": "autoMap",
+        "options": {}
+      },
+      "id": "707d1297-19a0-52b6-8b63-0d2aeca3f424",
+      "name": "Add rows to Excel",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [
+        5940,
+        300
+      ],
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "choose-after-import",
+          "name": "Microsoft Excel account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "toRecipients": "={{ $('Settings – edit me').first().json.alert_email }}",
+        "subject": "={{ 'Converted: ' + $('Summary').first().json.statementFile }}",
+        "bodyContent": "=<p><b>{{ $('Summary').first().json.statementFile }}</b> is converted.</p>\n<ul>\n<li>Rows: {{ $('Summary').first().json.rows }}</li>\n<li>Rows that don't add up: {{ $('Summary').first().json.rowsNotAddingUp }}</li>\n<li>Totals match the statement: {{ $('Summary').first().json.totalsMatch }}</li>\n<li>Pages used: {{ $('Summary').first().json.pagesUsed }}</li>\n<li>Files: {{ $('Summary').first().json.files }}</li>\n</ul>\n<p>Saved in OneDrive: {{ $('Save to OneDrive').all().map(f => '<a href=\"' + f.json.webUrl + '\">' + f.json.name + '</a>').join(', ') }}</p>",
+        "additionalFields": {
+          "bodyContentType": "html"
+        }
+      },
+      "id": "47c56bd0-f293-5703-a6b7-8ff77c7ce985",
+      "name": "Email the result",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        6160,
+        300
+      ],
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "choose-after-import",
+          "name": "Microsoft Outlook account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "## OneDrive folder → BankStatementXL → Excel\nDrop a PDF or photo of a statement into a OneDrive folder: the files you choose go to a \"converted\" folder, every transaction is added to a table in an Excel workbook, and you get an email with the result.\n\n### Set up in 5 steps\n1. **BankStatementXL key.** On bankstatementxl.com, open Settings → Developers and create a key. In n8n, open **Upload statement** and click *Connect to Header Auth*: name it `BankStatementXL API key`, Name `Authorization`, Value `Bearer ` followed by your key, then Save. n8n puts it on the other BankStatementXL nodes too.\n2. **Connect OneDrive, Excel and Outlook.** Pick or create your Microsoft account in **New statement in the folder**, **Download the statement**, **Save to OneDrive**, **Add rows to Excel** and **Email the result**. In **New statement in the folder**, put the ID of the folder you'll drop statements into.\n3. **Edit Settings – edit me.** `formats`: the files to make, separated by commas. `xlsx` Excel, `csv`, `qbo-csv` QuickBooks Online, `xero` Xero, `iif` QuickBooks Desktop, `ofx`, `qbo-ofx`, `qif` Quicken, `tally` Tally, `sage`, `myob`, `netsuite`, `json`. `converted_folder_id`: another folder, for the files. `excel_workbook_id`: open **Add rows to Excel**, choose the workbook from the list once, and copy its ID here. In the workbook, make a table (Insert → Table) with the headings Statement, Date, Description, Amount, Balance, Category and Note; `excel_sheet` and `excel_table` are their names. (A new table starts with one empty row; delete it once rows arrive.) `alert_email`: who gets the result.\n4. **Test with one statement.** Click *Execute* at the bottom of the canvas, then send or drop one statement. Check the files, the rows and the alert.\n5. **Switch it on.** Click *Publish* (top right; on older n8n, turn on *Active*). From now on every new statement is converted by itself.",
+        "height": 660,
+        "width": 1220
+      },
+      "id": "1da4949c-52cf-5681-a3be-e4cc4112bfc4",
+      "name": "Note: set up in 5 steps",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -420
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## The BankStatementXL part: nothing to change here\nEach statement is uploaded, checked every few seconds until it's converted, then its rows and the files you chose in **Settings – edit me** are downloaded, and the statement is deleted from BankStatementXL. Pages are used once, at the first download; a statement that can't be converted costs nothing.\nIf something goes wrong (no pages left, a file that isn't a statement), the run stops with BankStatementXL's own message, shown on the red node and in **Executions**.",
+        "height": 220,
+        "width": 4440,
+        "color": 7
+      },
+      "id": "5e9dcf7b-7b6f-5f4d-bc8b-7553fa94cb40",
+      "name": "Note: the BankStatementXL part",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        40
+      ]
+    }
+  ],
+  "connections": {
+    "New statement in the folder": {
+      "main": [
+        [
+          {
+            "node": "Settings – edit me",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings – edit me": {
+      "main": [
+        [
+          {
+            "node": "Only statements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only statements": {
+      "main": [
+        [
+          {
+            "node": "Download the statement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download the statement": {
+      "main": [
+        [
+          {
+            "node": "Statement file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Statement file": {
+      "main": [
+        [
+          {
+            "node": "Loop over statements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop over statements": {
+      "main": [
+        [],
+        [
+          {
+            "node": "This statement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "This statement": {
+      "main": [
+        [
+          {
+            "node": "Formats OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formats OK?": {
+      "main": [
+        [
+          {
+            "node": "Upload statement",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop: check the formats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload statement": {
+      "main": [
+        [
+          {
+            "node": "Uploaded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Uploaded?": {
+      "main": [
+        [
+          {
+            "node": "Wait 3 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop: BankStatementXL said no",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 3 seconds": {
+      "main": [
+        [
+          {
+            "node": "Get status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get status": {
+      "main": [
+        [
+          {
+            "node": "Check status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check status": {
+      "main": [
+        [
+          {
+            "node": "Stop: BankStatementXL said no",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop: not converted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Statement ready",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Why it stopped",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 3 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Statement ready": {
+      "main": [
+        [
+          {
+            "node": "Download rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download rows": {
+      "main": [
+        [
+          {
+            "node": "Rows downloaded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rows downloaded?": {
+      "main": [
+        [
+          {
+            "node": "Formats to make",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Why it stopped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formats to make": {
+      "main": [
+        [
+          {
+            "node": "One item per format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One item per format": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "File downloaded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File downloaded?": {
+      "main": [
+        [
+          {
+            "node": "Name the file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read the error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read the error": {
+      "main": [
+        [
+          {
+            "node": "Why it stopped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Name the file": {
+      "main": [
+        [
+          {
+            "node": "Files ready",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Remove the statement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove the statement": {
+      "main": [
+        [
+          {
+            "node": "Files ready",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Why it stopped": {
+      "main": [
+        [
+          {
+            "node": "Remove after a problem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove after a problem": {
+      "main": [
+        [
+          {
+            "node": "Stop: not finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Files ready": {
+      "main": [
+        [
+          {
+            "node": "Save to OneDrive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to OneDrive": {
+      "main": [
+        [
+          {
+            "node": "Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summary": {
+      "main": [
+        [
+          {
+            "node": "One row per transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One row per transaction": {
+      "main": [
+        [
+          {
+            "node": "Add rows to Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add rows to Excel": {
+      "main": [
+        [
+          {
+            "node": "Email the result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email the result": {
+      "main": [
+        [
+          {
+            "node": "Loop over statements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Converts statements dropped into a OneDrive folder: files to a converted folder, rows to an Excel table, an Outlook email with the result."
+  }
+}
