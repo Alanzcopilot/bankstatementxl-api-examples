@@ -2,6 +2,8 @@
 
 Convert PDF bank and credit card statements to Excel, CSV, QuickBooks (QBO), Xero, OFX, QIF and JSON from your own code, with every row checked against the statement's running balance.
 
+Invoices, bills, receipts, credit notes, purchase orders, checks, brokerage statements and tax forms go through the same upload. Each one's `document_type` says what the file is, and its `formats` list what it can be downloaded in (the API reference lists them by kind). Tax forms and paystubs must be digital PDFs for now.
+
 - Website: https://bankstatementxl.com
 - API reference: https://api.bankstatementxl.com/v1/docs
 - Get a key: Settings → Developers on bankstatementxl.com (the API comes with Pro and Business plans, free trials included)
